@@ -1,0 +1,147 @@
+﻿@page "/books/create"
+@using Akashic8.Data
+@using Microsoft.EntityFrameworkCore
+@using Akashic8.Domain
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>Book</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="Book" OnValidSubmit="AddBook" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label> 
+                <InputText id="name" @bind-Value="Book.Name" class="form-control" /> 
+                <ValidationMessage For="() => Book.Name" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="description" class="form-label">Description:</label> 
+                <InputText id="description" @bind-Value="Book.Description" class="form-control" /> 
+                <ValidationMessage For="() => Book.Description" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="isbn" class="form-label">ISBN:</label> 
+                <InputText id="isbn" @bind-Value="Book.ISBN" class="form-control" /> 
+                <ValidationMessage For="() => Book.ISBN" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="price" class="form-label">Price:</label> 
+                <InputNumber id="price" @bind-Value="Book.Price" class="form-control" /> 
+                <ValidationMessage For="() => Book.Price" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="quantity" class="form-label">Quantity:</label> 
+                <InputNumber id="quantity" @bind-Value="Book.Quantity" class="form-control" /> 
+                <ValidationMessage For="() => Book.Quantity" class="text-danger" /> 
+            </div>
+            <div class="mb-3">
+                <label for="imageurl" class="form-label">ImageUrl:</label>
+                <InputText id="imageurl" @bind-Value="Book.ImageUrl" class="form-control" />
+                <ValidationMessage For="() => Book.ImageUrl" class="text-danger" />
+            </div>
+            <div class="mb-3">
+                <label for="authorid" class="form-label">AuthorId:</label>
+                <InputSelect id="authorid" @bind-Value="Book.AuthorId" class="form-control">
+                    <option value="">-- Select Author --</option>
+                    @if (Authors != null)
+                    {
+                        foreach (var author in Authors)
+                        {
+                            <option value="@author.Id">@author.Name</option>
+                        }
+                    }
+                </InputSelect>
+            </div>
+         
+            <div class="mb-3">
+                <label for="genreid" class="form-label">GenreId:</label>
+                <InputSelect id="genreid" @bind-Value="Book.GenreId" class="form-control">
+                    <option value="">-- Select Genre --</option>
+                    @if (Genres != null)
+                    {
+                        foreach (var genre in Genres)
+                        {
+                            <option value="@genre.Id">@genre.Name</option>
+                        }
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3">
+                <label for="languageid" class="form-label">LanguageId:</label>
+                <InputSelect id="languageid" @bind-Value="Book.LanguageId" class="form-control">
+                    <option value="">-- Select Language --</option>
+                    @if (Languages != null)
+                    {
+                        foreach (var language in Languages)
+                        {
+                            <option value="@language.Id">@language.Name</option>
+                        }
+                    }
+                </InputSelect>
+            </div>
+
+
+            <div class="mb-3">
+                <label for="datecreated" class="form-label">DateCreated:</label> 
+                <InputDate id="datecreated" @bind-Value="Book.DateCreated" class="form-control" /> 
+                <ValidationMessage For="() => Book.DateCreated" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="dateupdated" class="form-label">DateUpdated:</label> 
+                <InputDate id="dateupdated" @bind-Value="Book.DateUpdated" class="form-control" /> 
+                <ValidationMessage For="() => Book.DateUpdated" class="text-danger" /> 
+            </div>        
+            @* <div class="mb-3">
+                <label for="createdby" class="form-label">CreatedBy:</label> 
+                <InputText id="createdby" @bind-Value="Book.CreatedBy" class="form-control" /> 
+                <ValidationMessage For="() => Book.CreatedBy" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="updatedby" class="form-label">UpdatedBy:</label> 
+                <InputText id="updatedby" @bind-Value="Book.UpdatedBy" class="form-control" /> 
+                <ValidationMessage For="() => Book.UpdatedBy" class="text-danger" /> 
+            </div>         *@
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/books">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private Book Book { get; set; } = new();
+
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddBook()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Book.Add(Book);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/books");
+    }
+
+    //Declare and initialize akashic8context and IList
+    private Akashic8Context context = default!;
+    private IList<Author> Authors;
+    private IList<Genre> Genres;
+    private IList<Language> Languages;
+	//OnInitialized method to get all author, genre and language
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+        Authors = context.Author.ToList();
+        Genres = context.Genre.ToList();
+        Languages = context.Language.ToList();
+    }
+}

@@ -1,0 +1,69 @@
+﻿@page "/cartitems/create"
+@using Microsoft.EntityFrameworkCore
+@using Akashic8.Domain
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h2>CartItem</h2>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="CartItem" OnValidSubmit="AddCartItem" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mb-3">
+                <label for="userid" class="form-label">UserId:</label> 
+                <InputText id="userid" @bind-Value="CartItem.UserId" class="form-control" /> 
+                <ValidationMessage For="() => CartItem.UserId" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="bookid" class="form-label">BookId:</label> 
+                <InputNumber id="bookid" @bind-Value="CartItem.BookId" class="form-control" /> 
+                <ValidationMessage For="() => CartItem.BookId" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="bookname" class="form-label">BookName:</label> 
+                <InputText id="bookname" @bind-Value="CartItem.BookName" class="form-control" /> 
+                <ValidationMessage For="() => CartItem.BookName" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="price" class="form-label">Price:</label> 
+                <InputNumber id="price" @bind-Value="CartItem.Price" class="form-control" /> 
+                <ValidationMessage For="() => CartItem.Price" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="quantity" class="form-label">Quantity:</label> 
+                <InputNumber id="quantity" @bind-Value="CartItem.Quantity" class="form-control" /> 
+                <ValidationMessage For="() => CartItem.Quantity" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="addedat" class="form-label">AddedAt:</label> 
+                <InputDate id="addedat" @bind-Value="CartItem.AddedAt" class="form-control" /> 
+                <ValidationMessage For="() => CartItem.AddedAt" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/cartitems">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private CartItem CartItem { get; set; } = new();
+
+    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task AddCartItem()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.CartItem.Add(CartItem);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/cartitems");
+    }
+}

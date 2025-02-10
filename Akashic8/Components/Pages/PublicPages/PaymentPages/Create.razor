@@ -1,0 +1,144 @@
+﻿@page "/payments/create"
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Akashic8.Data
+@using Akashic8.Domain
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+
+<link href="~/CSS/Payment.css" rel="stylesheet">
+
+<h1 class="payment-title">Complete Your Payment</h1>
+
+<div class="payment-container">
+    <EditForm EditContext="@editContext" OnValidSubmit="ProcessPayment" FormName="PaymentForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <!-- Billing Details Section -->
+        <div class="form-section">
+            <h2>Billing Details</h2>
+            <div class="form-group">
+                <label for="full-name">Full Name</label>
+                <InputText id="full-name" class="input-field" @bind-Value="payment.FullName" placeholder="Enter your full name" />
+                <ValidationMessage For="@(() => payment.FullName)" />
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <InputText id="email" type="email" class="input-field" @bind-Value="payment.Email" placeholder="Enter your email" />
+                <ValidationMessage For="@(() => payment.Email)" />
+            </div>
+            <div class="form-group">
+                <label for="address">Address</label>
+                <InputText id="address" class="input-field" @bind-Value="payment.Address" placeholder="Enter your address" />
+                <ValidationMessage For="@(() => payment.Address)" />
+            </div>
+            <div class="form-group">
+                <label for="city">City</label>
+                <InputText id="city" class="input-field" @bind-Value="payment.City" placeholder="Enter your city" />
+                <ValidationMessage For="@(() => payment.City)" />
+            </div>
+            <div class="form-group">
+                <label for="zip-code">ZIP Code</label>
+                <InputText id="zip-code" class="input-field" @bind-Value="payment.ZipCode" placeholder="Enter your ZIP code" />
+                <ValidationMessage For="@(() => payment.ZipCode)" />
+            </div>
+        </div>
+
+        <!-- Payment Details Section -->
+        <div class="form-section">
+            <h2>Payment Details</h2>
+            <div class="form-group">
+                <label for="card-name">Cardholder Name</label>
+                <InputText id="card-name" class="input-field" @bind-Value="payment.CardholderName" placeholder="Enter your cardholder name" />
+                <ValidationMessage For="@(() => payment.CardholderName)" />
+            </div>
+            <div class="form-group">
+                <label for="card-number">Card Number</label>
+                <InputText id="card-number" type="text" class="input-field" @bind-Value="payment.CardNumber" placeholder="Enter your card number" />
+                <ValidationMessage For="@(() => payment.CardNumber)" />
+            </div>
+            <div class="form-group payment-row">
+                <div>
+                    <label for="expiry-date">Expiry Date</label>
+                    <InputText id="expiry-date" type="text" class="input-field" @bind-Value="payment.ExpiryDate" placeholder="MM/YY" />
+                    <ValidationMessage For="@(() => payment.ExpiryDate)" />
+                </div>
+                <div>
+                    <label for="cvv">CVV</label>
+                    <InputText id="cvv" type="text" class="input-field" @bind-Value="payment.CVV" placeholder="CVV" />
+                    <ValidationMessage For="@(() => payment.CVV)" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions">
+            <button type="submit" class="submit-btn" disabled="@isProcessing">Submit Payment</button>
+            <a href="payments">Back to Payment List</a>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private Payment? payment { get; set; }
+    private EditContext editContext;
+    private bool isProcessing = false;
+    private string message = "";
+    private Akashic8Context context = default!;
+
+    protected override void OnInitialized()
+    {
+        payment ??= new Payment();
+        editContext = new EditContext(payment);
+    }
+
+    private async Task ProcessPayment()
+    {
+        try
+        {
+            isProcessing = true;
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (!user.Identity?.IsAuthenticated ?? true)
+            {
+                message = "User is not logged in.";
+                isProcessing = false;
+                return;
+            }
+
+            string userIdString = user.FindFirst("userId")?.Value ?? "";
+
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                message = "Invalid User ID. Payment not processed.";
+                isProcessing = false;
+                return;
+            }
+
+            payment.UserId = userIdString;  //  Now assigns UserId correctly
+            payment.PaymentDate = DateTime.Now;
+
+            await using var context = await DbFactory.CreateDbContextAsync();
+            context.Payment.Add(payment);
+            await context.SaveChangesAsync();
+
+            Console.WriteLine($"Payment added successfully for User ID: {payment.UserId}");
+            
+        }
+        catch (Exception ex)
+        {
+            message = $"Error processing payment: {ex.Message}";
+            Console.WriteLine($"Payment Error: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+        NavigationManager.NavigateTo("/payments");
+    }
+
+}

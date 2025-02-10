@@ -1,0 +1,84 @@
+﻿@page "/orders"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Akashic8.Domain
+@using Akashic8.Data
+@using System.Security.Claims
+@inject IDbContextFactory<Akashic8Context> DbFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject CartService CartService
+
+<PageTitle>Your Orders</PageTitle>
+
+<h1>Your Orders</h1>
+
+@if (FilteredOrders == null)
+{
+    <p>Loading orders... 📦</p>
+}
+else if (!FilteredOrders.Any())
+{
+    <p>No orders found.</p>
+}
+else
+{
+    <QuickGrid Class="table" Items="FilteredOrders">
+        <PropertyColumn Title="Date Out" Property="@(order => order.DateOut)" Sortable="true" Format="dd/MM/yyyy" />
+        <PropertyColumn Title="Date In" Property="@(order => order.DateIn)" Sortable="true" Format="dd/MM/yyyy" />
+
+        <TemplateColumn Context="order" Title="Cart Items">
+            <ul>
+                @if (order.CartItems?.Any() == true)
+                {
+                    @foreach (var item in order.CartItems)
+                    {
+                        <li>@item.BookName - @item.Quantity</li>
+                    }
+                }
+                else
+                {
+                    <li>No items in order</li>
+                }
+            </ul>
+        </TemplateColumn>
+
+        <PropertyColumn Title="Payment Status" Property="@(order => order.PaymentStatus)" Sortable="true" />
+
+        <TemplateColumn Context="order" Title="Actions">
+            <a href="@($"orders/details?id={order.Id}")">Details</a>
+        </TemplateColumn>
+    </QuickGrid>
+}
+
+@code {
+    private Akashic8Context context = default!;
+    private IQueryable<Order> FilteredOrders = Enumerable.Empty<Order>().AsQueryable();
+    private string userId = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            Console.WriteLine($" Loading orders for User ID: {userId}");
+
+            //  Get orders of the user
+            FilteredOrders = context.Order
+                .Where(o => o.UserId == userId)
+                .Include(o => o.CartItems);
+
+            Console.WriteLine($" Loaded orders for User ID: {userId}");
+        }
+        else
+        {
+            Console.WriteLine(" User ID is missing. No orders loaded.");
+        }
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+    }

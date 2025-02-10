@@ -1,0 +1,40 @@
+﻿@page "/languages"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Akashic8.Domain
+@using Akashic8.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="languages/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.Language">
+    <PropertyColumn Property="language => language.Name" />
+    <PropertyColumn Property="language => language.DateCreated" />
+    <PropertyColumn Property="language => language.DateUpdated" />
+    <PropertyColumn Property="language => language.CreatedBy" />
+    <PropertyColumn Property="language => language.UpdatedBy" />
+
+    <TemplateColumn Context="language">
+        <a href="@($"languages/edit?id={language.Id}")">Edit</a> |
+        <a href="@($"languages/details?id={language.Id}")">Details</a> |
+        <a href="@($"languages/delete?id={language.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private Akashic8Context context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

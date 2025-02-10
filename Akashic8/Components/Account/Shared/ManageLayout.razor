@@ -1,0 +1,16 @@
+﻿@inherits LayoutComponentBase
+@layout AccountLayout
+
+<div class="manage-account-container">
+    <h1 class="manage-account-title">Manage Your Account</h1>
+    <p class="manage-account-subtitle">Update your preferences and settings.</p>
+    <hr />
+    <div class="manage-account-content">
+        <div class="manage-nav-menu">
+            <ManageNavMenu />
+        </div>
+        <div class="manage-body">
+            @Body
+        </div>
+    </div>
+</div>

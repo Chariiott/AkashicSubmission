@@ -1,0 +1,190 @@
+﻿@page "/payments"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Akashic8.Domain
+@using Akashic8.Data
+@using System.Security.Claims
+@implements IAsyncDisposable
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Your Payment Details</PageTitle>
+
+<link href="CSS/Payment.css" rel="stylesheet">
+
+<h1>Your Payment Details</h1>
+
+
+
+<style>
+
+    /* Global Styles */
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        color: #333;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Header Styles */
+    h1 {
+        color: #2c3e50;
+        text-align: center;
+        margin-top: 30px;
+        font-size: 2rem;
+    }
+
+    /* Link Styles */
+    a {
+        color: #3498db;
+        text-decoration: none;
+    }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+    /* Create New Link */
+    p a {
+        font-size: 1.2rem;
+        margin-top: 20px;
+        display: inline-block;
+        padding: 10px 15px;
+        background-color: #3498db;
+        color: black;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+    }
+
+        p a:hover {
+            background-color: #2980b9;
+        }
+
+    /* Table Styles */
+    table {
+        width: 100%;
+        margin-top: 20px;
+        border-collapse: collapse;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #3498db;
+            color: black;
+            font-weight: bold;
+        }
+
+        table td {
+            background-color: black;
+        }
+
+        /* Row Hover Effect */
+        table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Table Action Column */
+        table .action-links a {
+            margin-right: 10px;
+            color: #2c3e50;
+            font-size: 1rem;
+        }
+
+            table .action-links a:hover {
+                color: #e74c3c;
+            }
+
+    /* Template Column Style */
+    .template-column a {
+        color: #e74c3c;
+        font-size: 1rem;
+        transition: color 0.3s ease;
+    }
+
+        .template-column a:hover {
+            color: #c0392b;
+        }
+
+    
+</style>
+
+
+<p>
+    <a href="payments/create">Create New</a>
+</p>
+
+
+<QuickGrid Class="table" Items="FilteredPayments">
+    <PropertyColumn Property="payment => payment.FullName" Title="Name" />
+    <PropertyColumn Property="payment => payment.Email" Title="Email" />
+    <PropertyColumn Property="payment => payment.Address" Title="Address" />
+    <PropertyColumn Property="payment => payment.City" Title="City" />
+    <PropertyColumn Property="payment => payment.ZipCode" Title="Zip Code" />
+
+
+    <PropertyColumn Property="payment => (GetMaskedCardNumber(payment.CardNumber))" Title="Card Number" />
+
+   
+    <PropertyColumn Property="payment => payment.ExpiryDate" Title="Expiry" />
+@*     <PropertyColumn Property="payment => payment.CVV" /> *@
+  @*   <PropertyColumn Property="payment => payment.PaymentDate" /> *@
+
+    <TemplateColumn Context="payment">
+        <a href="@($"payments/edit?id={payment.Id}")">Edit</a> |
+        <a href="@($"payments/details?id={payment.Id}")">Details</a> |
+        <a href="@($"payments/delete?id={payment.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private Akashic8Context context = default!;
+    private IQueryable<Payment> FilteredPayments = Enumerable.Empty<Payment>().AsQueryable();
+    private string userId = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            Console.WriteLine($" Loading payments for User ID: {userId}");
+            FilteredPayments = context.Payment.Where(p => p.UserId == userId);
+            Console.WriteLine($" Loaded payments for User ID: {userId}");
+        }
+        else
+        {
+            Console.WriteLine(" User ID is missing. No payments loaded.");
+        }
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();  
+
+
+    // Function to mask card number, showing only the first 4 digits
+    private string GetMaskedCardNumber(string cardNumber)
+    {
+        if (string.IsNullOrEmpty(cardNumber) || cardNumber.Length <= 4)
+        {
+            return cardNumber;  // Return the card number as is if it's 4 or fewer digits
+        }
+        else
+        {
+            // Mask the card number, showing only the first 4 digits
+            return cardNumber.Substring(0, 4) + " ****";
+        }
+    }
+
+}

@@ -1,0 +1,139 @@
+﻿@page "/books/details"
+@using Akashic8.Domain
+@using Microsoft.EntityFrameworkCore
+@inject NavigationManager NavManager
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+
+<h2 class="cottagecore-title">@(BookDetails?.Name ?? "Book Details")</h2>
+
+@if (IsLoading)
+{
+    <p class="cottagecore-text">Loading book details...</p>
+}
+else if (BookDetails == null)
+{
+    <p class="cottagecore-text">Book not found.</p>
+    <button @onclick="GoBack" class="cottagecore-button">Back to Books</button>
+}
+else
+{
+    <div class="cottagecore-container">
+        <img src="@BookDetails.ImageUrl" alt="@BookDetails.Name" class="cottagecore-image" />
+
+        <div class="cottagecore-info">
+            <p><strong>Title:</strong> @BookDetails.Name</p>
+            <p><strong>Author:</strong> @AuthorName</p>
+            <p class="cottagecore-description"><strong>Description:</strong> @BookDetails.Description</p>
+            <p><strong>Price:</strong> $@BookDetails.Price</p>
+
+            @if (IsAdmin)
+            {
+                <p><strong>Quantity:</strong> @BookDetails.Quantity</p>
+            }
+
+            <a href="/library" class="cottagecore-button">Back to Books</a>
+        </div>
+    </div>
+}
+
+<style>
+    .cottagecore-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #f5f1e3;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        font-family: 'Courier New', Courier, monospace;
+    }
+    .cottagecore-title {
+        font-size: 2em;
+        color: #6b4226;
+        text-align: center;
+    }
+    .cottagecore-text {
+        color: #6b4226;
+        text-align: center;
+    }
+    .cottagecore-image {
+        width: 200px;
+        height: auto;
+        border-radius: 10px;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    }
+    .cottagecore-info {
+        text-align: center;
+        margin-top: 15px;
+        color: #3e2723;
+    }
+    .cottagecore-description {
+        font-style: italic;
+        color: #5a3d2b;
+    }
+    .cottagecore-button {
+        background-color: #a67c52;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    .cottagecore-button:hover {
+        background-color: #8b5e3c;
+    }
+</style>
+
+@code {
+    private Book BookDetails;
+    private string AuthorName = "Unknown Author";
+    private bool IsAdmin = false;
+    private bool IsLoading = true;
+    private int? BookId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(NavManager.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var idString = queryParams.Get("id");
+
+        if (!int.TryParse(idString, out int parsedId))
+        {
+            IsLoading = false;
+            return;
+        }
+
+        BookId = parsedId;
+
+        try
+        {
+            using var context = await DbFactory.CreateDbContextAsync();
+            BookDetails = await context.Book.FindAsync(BookId);
+
+            if (BookDetails != null)
+            {
+                var author = await context.Author.FindAsync(BookDetails.AuthorId);
+                AuthorName = author?.Name ?? "Unknown Author";
+                IsAdmin = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching book details: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GoBack()
+    {
+
+        Console.WriteLine("GoBack method is being called.");
+        NavManager.NavigateTo("/library", forceLoad: true);
+    }
+
+}

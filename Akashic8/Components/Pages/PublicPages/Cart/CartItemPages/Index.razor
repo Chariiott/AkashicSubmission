@@ -1,0 +1,141 @@
+﻿@page "/cartitems"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Akashic8.Domain
+@using Akashic8.Data
+@using System.Security.Claims
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject CartService CartService
+
+@inject NavigationManager Navigation
+
+<PageTitle>Your Shopping Cart</PageTitle>
+
+<h1>Your Shopping Cart</h1>
+
+,<style>
+     /* Global Styles */
+     body {
+         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+         color: #333;
+         margin: 0;
+         padding: 0;
+     }
+
+     /* Page Container */
+     h1 {
+         font-size: 2rem;
+         color: #333;
+         text-align: center;
+         margin-top: 20px;
+     }
+
+     p {
+         text-align: center;
+         margin-bottom: 20px;
+     }
+
+     /* Table Styles */
+     .table {
+         width: 90%;
+         margin: 0 auto;
+         border-collapse: collapse;
+         border-radius: 8px;
+         overflow: hidden;
+         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+     }
+
+     th, td {
+         padding: 12px 15px;
+         text-align: left;
+         border-bottom: 1px solid #f0f0f0;
+     }
+
+     th {
+         background-color: #007bff;
+         color: black;
+         font-weight: bold;
+     }
+
+     tr:hover {
+         background-color: #f9f9f9;
+     }
+
+     /* Links inside table */
+     a {
+         color: #007bff;
+         text-decoration: none;
+     }
+
+         a:hover {
+             text-decoration: underline;
+         }
+
+</style>
+
+<QuickGrid Class="table" Items="cartItems">
+    @* <PropertyColumn Title="User ID" Property="@(cartitem => cartitem.UserId)" /> *@
+    <PropertyColumn Title="Book ID" Property="@(cartitem => cartitem.BookId)" />
+    <PropertyColumn Title="Book Name" Property="@(cartitem => cartitem.BookName)" />
+    <PropertyColumn Title="Price" Property="@(cartitem => cartitem.Price)" />
+    <PropertyColumn Title="Quantity" Property="@(cartitem => cartitem.Quantity)" />
+    @*   <PropertyColumn Title="Added At" Property="@(cartitem => cartitem.AddedAt)" /> *@
+
+
+
+    <TemplateColumn Context="cartitem">
+        <a href="@($"cartitems/edit?id={cartitem.Id}")">Edit</a> | 
+        @* <a href="@($"cartitems/details?id={cartitem.Id}")">Details</a> | *@
+        <a href="@($"cartitems/delete?id={cartitem.Id}")">Remove From Cart</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private IQueryable<CartItem> cartItems = Enumerable.Empty<CartItem>().AsQueryable();
+    private string UserId;
+    private bool IsInitialized = false; // Prevent duplicate calls
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsInitialized) return;
+        IsInitialized = true;
+
+        try
+        {
+            Console.WriteLine("Initializing Cart Page...");
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated ?? false)
+            {
+                UserId = user.FindFirst("sub")?.Value ??
+                         user.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                         user.FindFirst("uid")?.Value;
+
+                if (string.IsNullOrEmpty(UserId))
+                {
+                    Console.WriteLine("Warning: User ID is NULL.");
+                }
+                else
+                {
+                    Console.WriteLine($"User ID found: {UserId}");
+                    var list = await CartService.GetCartItemAsync(UserId);
+                    cartItems = list.AsQueryable(); // Convert to IQueryable for QuickGrid
+                    Console.WriteLine($"Cart loaded. Total items: {cartItems.Count()}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("User is NOT authenticated. Redirecting to login...");
+                Navigation.NavigateTo("/Account/Login", forceLoad: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading cart: {ex.Message}");
+        }
+    }
+
+}

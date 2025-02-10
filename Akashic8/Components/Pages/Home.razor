@@ -1,0 +1,160 @@
+﻿    @page "/"
+
+    @using Akashic8.Domain
+    @using Microsoft.EntityFrameworkCore
+    @inject BookService BookService
+    @inject CartService CartService
+    @inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+    @inject NavigationManager Navigation
+
+    @* Hero Section *@
+    <div class="hero-title-container">
+        <h1 class="hero-title">Welcome to Akashic Records</h1>
+    </div>
+
+    @* <hr> *@
+
+    @* Featured Books *@
+    @* <h2>Featured Books <button @onclick="RefreshBooks" class="refresh-btn">🔄 Refresh</button></h2> *@
+    <div class="featured-books">
+        @foreach (var book in FeaturedBooks)
+        {
+            <div class="book-card">
+                <NavLink class="book-link" href="@($"books/details?id={book.Id}")">
+                    <img src="@book.ImageUrl" alt="@book.Name" class="book-cover" />
+                </NavLink>
+                <h3 class="book-title">
+                    <NavLink class="book-link" href="@($"books/details?id={book.Id}")">@book.Name</NavLink>
+                </h3>
+                <p class="book-author">by @(Authors.ContainsKey(book.AuthorId) ? Authors[book.AuthorId] : "Unknown Author")</p>
+            </div>
+        }
+        <NavLink href="library" class="more-button">More Books</NavLink>
+    </div>
+
+    @* Footer *@
+    <footer class="footer">
+        <div class="footer-container">
+            <!-- Brand/Logo Section -->
+            <div class="footer-section">
+                <h2 class="footer-logo">Akashic Records</h2>
+                <p>Your cozy bookstore for timeless stories.</p>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="#">Home</a></li>
+                    <li><a href="library">Books</a></li>
+                    <li><a href="about-us">About Us</a></li>
+                    <li><a href="Account/Manage">Manage Your Account</a></li>
+                </ul>
+            </div>
+
+            <!-- Categories -->
+            <div class="footer-section">
+                <h3>Categories</h3>
+                <ul>
+                    <li><a href="#">Fiction</a></li>
+                    <li><a href="#">Non-Fiction</a></li>
+                    <li><a href="#">Fantasy</a></li>
+                    <li><a href="#">Romance</a></li>
+                </ul>
+            </div>
+
+            <!-- Social Media -->
+            <div class="footer-section">
+                <h3>Follow Us</h3>
+                <div class="footer-socials">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>© 2025 Akashic Records. All rights reserved.</p>
+        </div>
+    </footer>x`
+
+
+    @code {
+        //Initializing Items
+        private string searchQuery = "";
+        private string email = "";
+        private List<Book> Books = new();
+        private List<Genre> Genres = new();
+        private List<Akashic8.Domain.Book> FeaturedBooks = new();
+        private Dictionary<int, string> Authors = new();
+        private List<Book> searchResults = new();
+        private string UserId;
+
+        protected override async Task OnInitializedAsync()
+        {
+            using var context = await DbFactory.CreateDbContextAsync();
+
+            FeaturedBooks = await BookService.GetRandomFeaturedBooks(5); // Fetch 5 random books
+
+            Books = await context.Book.ToListAsync();
+
+            Genres = await context.Genre.ToListAsync();
+
+            Authors = await context.Author.ToDictionaryAsync(a => a.Id, a => a.Name ?? "Unknown Author");
+        }
+
+        private async Task RefreshBooks()
+        {
+            FeaturedBooks = await BookService.GetRandomFeaturedBooks(5);
+        }
+
+        private void NavigateToBook(int bookId)
+        {
+            searchResults.Clear(); // Hide dropdown after selection
+            Navigation.NavigateTo($"/books/details?id={bookId}");
+        }
+
+        private async Task AddToCart(Book book)
+        {
+            Console.WriteLine($"AddToCart() triggered for book: {book.Name}");
+
+            if (string.IsNullOrEmpty(UserId))
+            {
+                Console.WriteLine("User is not logged in. Redirecting to login...");
+                Navigation.NavigateTo("/Account/Login", forceLoad: true);
+                return;
+            }
+
+            Console.WriteLine($"User {UserId} is adding {book.Name} to cart.");
+
+            var cartItem = new CartItem
+                {
+                    UserId = UserId,
+                    BookId = book.Id,
+                    BookName = book.Name,
+                    Price = (decimal)book.Price,
+                    Quantity = 1
+                };
+
+            try
+            {
+                await CartService.AddOrUpdateItemAsync(UserId, cartItem);
+                Console.WriteLine("CartService.AddOrUpdateItemAsync() executed successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error adding item to cart: {ex.Message}");
+            }
+        }
+
+        private void FilterByCategory(string category)
+        {
+            Console.WriteLine($"Filtering by category: {category}");
+        }
+
+        private void Subscribe()
+        {
+            Console.WriteLine($"Subscribed with email: {email}");
+        }
+    }

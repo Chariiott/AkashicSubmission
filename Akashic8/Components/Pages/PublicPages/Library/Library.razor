@@ -1,0 +1,413 @@
+﻿@page "/library"
+
+@using Akashic8.Domain
+@using Akashic8.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
+@inject IDbContextFactory<Akashic8Context> DbFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject CartService CartService
+@rendermode InteractiveServer	
+@inject NavigationManager Navigation
+
+<h3 class="library-title">The Library </h3>
+
+<style>
+    .library-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        background-color: #f9f9f9;
+    }
+
+    .library-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .search-bar {
+        padding: 10px;
+        width: 50%;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .category-filter {
+        padding: 10px;
+        width: 50%;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+
+    .loading-text, .empty-library {
+        font-size: 18px;
+        color: #555;
+    }
+
+    .library-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        width: 100%;
+        max-width: 1200px;
+    }
+
+    .library-card {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .library-cover {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        border-radius: 5px;
+    }
+
+    .library-author {
+        font-size: 16px;
+        color: #666;
+    }
+
+    .library-description {
+        font-size: 14px;
+        color: #444;
+        margin-bottom: 10px;
+    }
+
+    .add-to-cart-btn, .view-details-btn {
+        padding: 8px 12px;
+        border: none;
+        cursor: pointer;
+        margin: 5px;
+        border-radius: 5px;
+    }
+
+    .add-to-cart-btn {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .view-details-btn {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .add-to-cart-btn:hover {
+        background-color: #218838;
+    }
+
+    .view-details-btn:hover {
+        background-color: #0056b3;
+    }
+
+    /*Footer*/
+    .footer {
+        background: #f8f3ed; /* Soft pastel background */
+        color: #5a4634; /* Warm earthy brown */
+        font-family: "Georgia", serif; /* Elegant, vintage serif font */
+        padding: 30px 0; /* Comfortable spacing */
+        text-align: center;
+        border-top: 2px solid #e3d7c6; /* Soft border for separation */
+    }
+
+    .footer-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 40px; /* Space between sections */
+        max-width: 1200px;
+        margin: auto;
+    }
+
+    .footer-section {
+        flex: 1;
+        min-width: 250px; /* Ensures responsiveness */
+    }
+
+        .footer-section h3 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #3e3024; /* Darker text for contrast */
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+            .footer-section ul li {
+                margin: 5px 0;
+            }
+
+                .footer-section ul li a {
+                    text-decoration: none;
+                    color: #5a4634;
+                    transition: color 0.3s ease;
+                }
+
+                    .footer-section ul li a:hover {
+                        color: #3e3024; /* Darker hover effect */
+                        text-decoration: underline;
+                    }
+
+    .footer-logo {
+        font-size: 2rem;
+        font-weight: bold;
+        font-family: 'Dancing Script', cursive; /* Handwritten-style font */
+        color: #5a4634;
+    }
+
+    .footer-socials {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 10px;
+    }
+
+        .footer-socials a {
+            text-decoration: none;
+            color: #5a4634;
+            font-size: 1.4rem;
+            transition: transform 0.3s ease;
+        }
+
+            .footer-socials a:hover {
+                transform: scale(1.1); /* Slight zoom effect */
+                color: #3e3024;
+            }
+
+    .footer-bottom {
+        margin-top: 20px;
+        font-size: 0.9rem;
+        color: #867b6b;
+    }
+
+</style>
+
+<select @bind="SelectedCategory" @bind:event="onchange" class="category-filter">
+    <option value="">All Categories</option>
+    @foreach (var genre in Genres)
+    {
+        <option value="@genre.Name">@genre.Name</option>
+    }
+</select>
+
+
+<input type="text" class="search-bar" placeholder="Search for books..." @bind="SearchQuery" @oninput="PerformSearch" />
+
+<div class="library-container">
+    @if (FilteredBooks == null)
+    {
+        <p class="loading-text">Loading... Please hold for a moment 🍃📖</p>
+    }
+    else if (FilteredBooks.Count == 0)
+    {
+        <p class="empty-library">No books found. Perhaps new stories will arrive soon! 🌿✨</p>
+    }
+    else
+    {
+        <div class="library-grid">
+            @foreach (var book in FilteredBooks)
+            {
+                <div class="library-card">
+                    <NavLink class="book-link" href="@($"books/details?id={book.Id}")">
+                        <img src="@book.ImageUrl" alt="Book cover of @book.Name" class="library-cover" />
+                    </NavLink>
+                    <h4 class="library-title">@book.Name</h4>
+                    <p class="library-author"><i>by @(Authors.ContainsKey(book.AuthorId) ? Authors[book.AuthorId] : "Unknown Author")</i></p>
+                    <p class="library-description">@book.Description</p>
+                    <button class="add-to-cart-btn" @onclick="() => AddToCart(book)">🛒 Add to Cart</button>
+                    <button class="view-details-btn" @onclick="() => NavigateToBook(book.Id)">View Details</button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* Footer *@
+<footer class="footer">
+    <div class="footer-container">
+        <!-- Brand/Logo Section -->
+        <div class="footer-section">
+            <h2 class="footer-logo">Akashic Records</h2>
+            <p>Your cozy bookstore for timeless stories.</p>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="footer-section">
+            <h3>Quick Links</h3>
+            <ul>
+                <li><a href="#">Home</a></li>
+                <li><a href="library">Books</a></li>
+                <li><a href="about-us">About Us</a></li>
+                <li><a href="Account/Manage">Manage Your Account</a></li>
+            </ul>
+        </div>
+
+        <!-- Categories -->
+        <div class="footer-section">
+            <h3>Categories</h3>
+            <ul>
+                <li><a href="#">Fiction</a></li>
+                <li><a href="#">Non-Fiction</a></li>
+                <li><a href="#">Fantasy</a></li>
+                <li><a href="#">Romance</a></li>
+            </ul>
+        </div>
+
+        <!-- Social Media -->
+        <div class="footer-section">
+            <h3>Follow Us</h3>
+            <div class="footer-socials">
+                <a href="#"><i class="fab fa-facebook"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        <p>© 2025 Akashic Records. All rights reserved.</p>
+    </div>
+</footer>x`
+
+@code {
+    private List<Book> Books { get; set; } = new();
+    private List<Book> FilteredBooks { get; set; } = new();
+    private List<Genre> Genres { get; set; } = new();
+    private Dictionary<int, string> Authors { get; set; } = new();
+    private string SearchQuery { get; set; } = "";
+    private string _selectedCategory = "";
+    private string UserId;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            //  No need to enforce login here
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated ?? false)
+            {
+                Console.WriteLine("User is authenticated. Listing all claims:");
+                foreach (var claim in user.Claims)
+                {
+                    Console.WriteLine($"Claim Type: {claim.Type}, Value: {claim.Value}");
+                }
+
+                // Retrieve UserId only if authenticated
+                UserId = user.FindFirst("sub")?.Value ??
+                         user.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                         user.FindFirst("uid")?.Value;
+
+                if (!string.IsNullOrEmpty(UserId))
+                {
+                    Console.WriteLine($"User ID found: {UserId}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("User is NOT authenticated, but Library is accessible.");
+            }
+
+            using var context = await DbFactory.CreateDbContextAsync();
+            Books = await context.Book.Include(b => b.Genre).ToListAsync();
+            Genres = await context.Genre.ToListAsync();
+            Authors = await context.Author.ToDictionaryAsync(a => a.Id, a => a.Name ?? "Unknown Author");
+
+            // Read category from URL
+            var uri = new Uri(Navigation.Uri);
+            var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            SelectedCategory = queryParams.Get("category") ?? "";
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error fetching books: {ex.Message}");
+        }
+    }
+
+
+
+    private async Task AddToCart(Book book)
+    {
+        Console.WriteLine($"AddToCart() triggered for book: {book.Name}");
+
+        if (string.IsNullOrEmpty(UserId))
+        {
+            Console.WriteLine("User is not logged in. Redirecting to login...");
+            Navigation.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        Console.WriteLine($"User {UserId} is adding {book.Name} to cart.");
+
+        var cartItem = new CartItem
+            {
+                UserId = UserId,
+                BookId = book.Id,
+                BookName = book.Name,
+                Price = (decimal)book.Price,
+                Quantity = 1
+            };
+
+        try
+        {
+            await CartService.AddOrUpdateItemAsync(UserId, cartItem);
+            Console.WriteLine("CartService.AddOrUpdateItemAsync() executed successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding item to cart: {ex.Message}");
+        }
+    }
+
+
+
+
+
+    private void PerformSearch(ChangeEventArgs e)
+    {
+        SearchQuery = e.Value.ToString().ToLower();
+        FilteredBooks = Books.Where(b => b.Name.ToLower().Contains(SearchQuery) ||
+                                         (Authors.ContainsKey(b.AuthorId) && Authors[b.AuthorId].ToLower().Contains(SearchQuery))).ToList();
+    }
+        
+    private string SelectedCategory
+    {
+        get => _selectedCategory;
+        set
+        {
+            if (_selectedCategory != value)
+            {
+                _selectedCategory = value;
+                ApplyFilters();
+            }
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        FilteredBooks = Books
+            .Where(b => (string.IsNullOrEmpty(SearchQuery) || b.Name.ToLower().Contains(SearchQuery)) &&
+                        (string.IsNullOrEmpty(SelectedCategory) || b.Genre.Name == SelectedCategory))
+            .ToList();
+    }
+
+    private void NavigateToBook(int bookId)
+    {
+        Navigation.NavigateTo($"/books/details?id={bookId}");
+    }
+}

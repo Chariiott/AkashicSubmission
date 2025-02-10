@@ -1,0 +1,134 @@
+﻿@page "/payments/edit"
+@using Microsoft.EntityFrameworkCore
+@using Akashic8.Domain
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>Payment</h2>
+<hr />
+@if (Payment is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="Payment" OnValidSubmit="UpdatePayment" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="Payment.Id" value="@Payment.Id" />
+                <div class="mb-3">
+                    <label for="fullname" class="form-label">FullName:</label>
+                    <InputText id="fullname" @bind-Value="Payment.FullName" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => Payment.FullName" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email:</label>
+                    <InputText id="email" @bind-Value="Payment.Email" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => Payment.Email" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address:</label>
+                    <InputText id="address" @bind-Value="Payment.Address" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => Payment.Address" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="city" class="form-label">City:</label>
+                    <InputText id="city" @bind-Value="Payment.City" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => Payment.City" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="zipcode" class="form-label">ZipCode:</label>
+                    <InputText id="zipcode" @bind-Value="Payment.ZipCode" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => Payment.ZipCode" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="cardholdername" class="form-label">CardholderName:</label>
+                    <InputText id="cardholdername" @bind-Value="Payment.CardholderName" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => Payment.CardholderName" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="cardnumber" class="form-label">CardNumber:</label>
+                    <InputText id="cardnumber" @bind-Value="Payment.CardNumber" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => Payment.CardNumber" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="expirydate" class="form-label">ExpiryDate:</label>
+                    <InputText id="expirydate" @bind-Value="Payment.ExpiryDate" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => Payment.ExpiryDate" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="cvv" class="form-label">CVV:</label>
+                    <InputText id="cvv" @bind-Value="Payment.CVV" class="form-control" aria-required="true"/>
+                    <ValidationMessage For="() => Payment.CVV" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="paymentdate" class="form-label">PaymentDate:</label>
+                    <InputDate id="paymentdate" @bind-Value="Payment.PaymentDate" class="form-control" />
+                    <ValidationMessage For="() => Payment.PaymentDate" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/payments">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private Payment? Payment { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Payment ??= await context.Payment.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (Payment is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task UpdatePayment()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(Payment!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!PaymentExists(Payment!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/payments");
+    }
+
+    private bool PaymentExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.Payment.Any(e => e.Id == id);
+    }
+}

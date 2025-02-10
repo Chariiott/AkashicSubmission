@@ -1,0 +1,119 @@
+﻿@page "/cartitems/edit"
+@using Microsoft.EntityFrameworkCore
+@using Akashic8.Domain
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>CartItem</h2>
+<hr />
+@if (CartItem is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="CartItem" OnValidSubmit="UpdateCartItem" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert" />
+                <input type="hidden" name="CartItem.Id" value="@CartItem.Id" />
+
+                <div class="mb-3 d-none" type="hidden">
+                    <label for="userid" class="form-label">UserId:</label>
+                    <InputText id="userid" @bind-Value="CartItem.UserId" class="form-control" />
+                    <ValidationMessage For="() => CartItem.UserId" class="text-danger" />
+                </div>
+                <div class="mb-3 d-none" type="hidden">
+                    <label for="bookid" class="form-label">BookId:</label>
+                    <InputNumber id="bookid" @bind-Value="CartItem.BookId" class="form-control" />
+                    <ValidationMessage For="() => CartItem.BookId" class="text-danger" />
+                </div>
+                <div class="mb-3 d-none" type="hidden">
+                    <label for="bookname" class="form-label">BookName:</label>
+                    <InputText id="bookname" @bind-Value="CartItem.BookName" class="form-control" />
+                    <ValidationMessage For="() => CartItem.BookName" class="text-danger" />
+                </div>
+                <div class="mb-3 d-none" type="hidden">
+                    <label for="price" class="form-label">Price:</label>
+                    <InputNumber id="price" @bind-Value="CartItem.Price" class="form-control" />
+                    <ValidationMessage For="() => CartItem.Price" class="text-danger" />
+                </div>
+
+                <div class="mb-3 d-none" type="hidden">
+                    <label for="addedat" class="form-label">AddedAt:</label>
+                    <InputDate id="addedat" @bind-Value="CartItem.AddedAt" class="form-control" />
+                    <ValidationMessage For="() => CartItem.AddedAt" class="text-danger" />
+
+                </div>
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">Quantity:</label>
+                    <InputNumber id="quantity" @bind-Value="CartItem.Quantity" class="form-control" />
+                    <ValidationMessage For="() => CartItem.Quantity" class="text-danger" />
+                </div>
+
+
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/cartitems">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private CartItem? CartItem { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        CartItem ??= await context.CartItem.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (CartItem is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task UpdateCartItem()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(CartItem!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!CartItemExists(CartItem!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/cartitems");
+    }
+
+    private bool CartItemExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.CartItem.Any(e => e.Id == id);
+    }
+}

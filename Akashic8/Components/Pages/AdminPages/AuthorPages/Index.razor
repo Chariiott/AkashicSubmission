@@ -1,0 +1,42 @@
+﻿@page "/authors"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Akashic8.Domain
+@using Akashic8.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<link href="CSS/Payment.css" rel="stylesheet">
+
+<h1>Index</h1>
+
+<p>
+    <a href="authors/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.Author">
+    <PropertyColumn Property="author => author.Name" />
+    <PropertyColumn Property="author => author.DateCreated" />
+    <PropertyColumn Property="author => author.DateUpdated" />
+@*     <PropertyColumn Property="author => author.CreatedBy" />
+    <PropertyColumn Property="author => author.UpdatedBy" /> *@
+
+    <TemplateColumn Context="author">
+        <a href="@($"authors/edit?id={author.Id}")">Edit</a> |
+        <a href="@($"authors/details?id={author.Id}")">Details</a> |
+        <a href="@($"authors/delete?id={author.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private Akashic8Context context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

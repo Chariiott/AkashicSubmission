@@ -1,0 +1,54 @@
+﻿@page "/languages/details"
+@using Microsoft.EntityFrameworkCore
+@using Akashic8.Domain
+@inject IDbContextFactory<Akashic8.Data.Akashic8Context> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h2>Language</h2>
+    <hr />
+    @if (language is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Name</dt>
+            <dd class="col-sm-10">@language.Name</dd>
+            <dt class="col-sm-2">DateCreated</dt>
+            <dd class="col-sm-10">@language.DateCreated</dd>
+            <dt class="col-sm-2">DateUpdated</dt>
+            <dd class="col-sm-10">@language.DateUpdated</dd>
+            <dt class="col-sm-2">CreatedBy</dt>
+            <dd class="col-sm-10">@language.CreatedBy</dd>
+            <dt class="col-sm-2">UpdatedBy</dt>
+            <dd class="col-sm-10">@language.UpdatedBy</dd>
+        </dl>
+        <div>
+            <a href="@($"/languages/edit?id={language.Id}")">Edit</a> |
+            <a href="@($"/languages")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    private Language? language;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        language = await context.Language.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (language is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

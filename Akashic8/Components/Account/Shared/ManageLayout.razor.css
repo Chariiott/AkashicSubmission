@@ -1,0 +1,43 @@
+﻿/*Manage Account Layout*/
+.manage-account-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #f8f3ed;
+    border-radius: 12px;
+    box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    border: 2px solid #e3d7c6;
+}
+
+.manage-account-title {
+    font-size: 2rem;
+    font-weight: bold;
+    font-family: "Georgia", serif;
+    color: #5a4634;
+}
+
+.manage-account-subtitle {
+    font-size: 1.2rem;
+    color: #867b6b;
+    margin-bottom: 20px;
+}
+
+.manage-account-content {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.manage-nav-menu {
+    flex: 1;
+    max-width: 250px;
+}
+
+.manage-body {
+    flex: 2;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+}
